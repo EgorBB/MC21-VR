@@ -9,70 +9,59 @@ using UnityEngine.AI;
 
 public class AI_Enemy : MonoBehaviour
 {
-    NavMeshAgent nm;
-    Rigidbody rb;
-    Animator anim;
-    public Transform Target;
     public Transform[] WayPoints;
-    public int Cur_WayPoints;
-    public int speed;
-    public float stop_distance;
-    public float PauseTimer;
-    [SerializeField]
-    private float cur_timer;
+    public int Speed = 5;
+    public float StopDistance = 0.1f;
+
+    private int currentWayPoint = 0;
+    private NavMeshAgent navMesh;
+    private Rigidbody rigidBody;
+    private Animator animator;
+    private Transform target;
+    private float idleSpeed;
 
     void Start()
     {
-        anim = GetComponent<Animator>();
-        nm = GetComponent<NavMeshAgent>();
-        rb = GetComponent<Rigidbody>();
+        animator = this.GetComponent<Animator>();
+        navMesh = GetComponent<NavMeshAgent>();
+        rigidBody = GetComponent<Rigidbody>();
 
-        rb.freezeRotation = true;
+        rigidBody.freezeRotation = true;
 
-        Target = WayPoints[Cur_WayPoints];
-        cur_timer = PauseTimer;
+        target = WayPoints[currentWayPoint];
+        idleSpeed = animator.speed;
     }
 
     void Update()
     {
-        //Settings Updated
-        nm.acceleration = speed;
-        nm.stoppingDistance = stop_distance;
+        //navMesh.acceleration = Speed;
+        navMesh.stoppingDistance = StopDistance;
+        //animator.speed = navMesh.velocity.magnitude / 3;
 
-        float distance = Vector3.Distance(transform.position, Target.position);
+        float distance = Vector3.Distance(transform.position, target.position);
 
-
-        //Move to Waypoint
-        if (distance > stop_distance && WayPoints.Length > 0)
+        if (animator.GetBool("isWalking") && distance <= StopDistance)
         {
-
-            //Find Waypoint
-            anim.SetBool("isWalking", true);
-            anim.SetBool("Stop", false);
-            Target = WayPoints[Cur_WayPoints];
-            
-        }
-        else if (distance <= stop_distance && WayPoints.Length > 0)
-        {
-            if (cur_timer > 0)
+            currentWayPoint++;
+            if (currentWayPoint >= WayPoints.Length)
             {
-                cur_timer -= 0.01f;
-                anim.SetBool("isWalking", false);
-                anim.SetBool("Stop", true);
+                animator.SetBool("isWalking", false);
+                animator.SetBool("isIdle", true);
+                animator.speed = idleSpeed;
             }
-            if (cur_timer <= 0)
+            else
             {
-                Cur_WayPoints++;
-                if (Cur_WayPoints >= WayPoints.Length)
-                {
-                    Cur_WayPoints = 0;
-                }
-                Target = WayPoints[Cur_WayPoints];
-                cur_timer = PauseTimer;
+                target = WayPoints[currentWayPoint];
             }
         }
+        navMesh.SetDestination(target.position);
+    }
 
-        nm.SetDestination(Target.position);
-
+    public void StartWalking()
+    {
+        currentWayPoint = 0;
+        target = WayPoints[currentWayPoint];
+        animator.SetBool("isWalking", true);
+        animator.SetBool("isIdle", false);
     }
 }
